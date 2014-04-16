@@ -36,3 +36,40 @@ d3.json('/sfmaps/streets.json', function(err, streets) {
 		.attr('d', path)
 		.attr('stroke', 'black');
 });
+
+var url = 'http://webservices.nextbus.com/service/publicXMLFeed';
+var params = {
+  command: 'vehicleLocations',
+  a: 'sf-muni',
+  r: 'N',
+  t: '1144953500233'
+};
+
+$(function() {
+	$.get(url, params, function(data, textStatus, jqXHR) {
+		console.log(1);
+		var vehicles = data.getElementsByTagName('vehicle');
+		console.log(vehicles);
+
+		for (var i=0; i < vehicles.length; i++) {
+			var vehicle = vehicles[i];
+			console.log(vehicle.getAttribute('id'));
+			console.log(vehicle.getAttribute('routeTag'));
+			console.log(vehicle.getAttribute('dirTag'));
+			console.log(vehicle.getAttribute('lat'));
+			console.log(vehicle.getAttribute('long'));
+			console.log(vehicle.getAttribute('secsSinceReport'));
+			console.log(vehicle.getAttribute('predictable'));
+			console.log(vehicle.getAttribute('heading'));
+			console.log(vehicle.getAttribute('speedKmHr'));
+
+		}
+	})
+
+});
+/*
+d3.xml(url)
+.post('command=vehicleLocations&a=sf-muni&r=N&t=1144953500233', function(err, data) {
+	console.log(data);
+})
+*/
