@@ -28,3 +28,7 @@ path {
 .neighborhoods {
 	stroke: yellow;
 }
+
+.buses {
+	fill: red;
+}

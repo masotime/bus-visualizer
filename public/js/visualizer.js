@@ -1,19 +1,29 @@
 var width = 960, height = 1160;
 var svg = d3.select('div#visual-container').append('svg').attr('width', width).attr('height', height);
+var pathCache = {};
 
 var renderGEOJson = function(className) {
 
-	return function(err, streets) {
-		// so there are too many damned paths. Cut it down to one.
-		var selectedFeatures = streets.features;
+	if (!className) {
+		throw new Error("Specify a valid classname to render these paths");
+	}
+
+	function generatePath() {
+		// based upon cached paths, calculate global bounds and determine a universal
+		// projection for all of them
+		var allfeatures = [];
+
+		for (key in pathCache) {
+			allfeatures = allfeatures.concat(pathCache[key].features);
+		}
 
 		// lots of references to http://stackoverflow.com/a/14691788
 	 	var projection = d3.geo.albers().scale(1).translate([0, 0]);
 		var path = d3.geo.path().projection(projection);
-		var bounds = path.bounds(streets);
+		var bounds = path.bounds({type: "FeatureCollection", features: allfeatures});
 
 		// based on the bounds, create a new projection
-		console.log('bounds = ',JSON.stringify(bounds,null,4));
+		console.log('world bounds = ',JSON.stringify(bounds,null,4));
 
 		// 1. scale must match the larger of (x2-x1)/width, (y2-y1)/height
 		var x1 = bounds[0][0];
@@ -27,14 +37,31 @@ var renderGEOJson = function(className) {
 		// update the projection
 		projection.scale(s).translate(t);
 
-		// the path will automatically use the new projection
-		console.log('new bounds = ',JSON.stringify(path.bounds(streets), null, 4));
+		// return the path
+		return path;
+	}
 
-		svg.selectAll('path.'+className)
-			.data(selectedFeatures)
-		.enter().append('path')
-			.attr('d', path)
-			.attr('class', className);	
+
+	return function(err, streets) {
+		// store the paths inside the cache
+		pathCache[className] = streets;
+
+		// generate a path with global bounds
+		var path = generatePath();
+
+		// the path will automatically use the new projection
+		console.log('scaled bounds = ',JSON.stringify(path.bounds(streets), null, 4));
+
+		// rerender all paths in the cache
+		for (key in pathCache) {
+			svg.selectAll('path.'+key).remove();
+			svg.selectAll('path.'+key)
+				.data(pathCache[key].features)
+				.enter().append('path')
+					.attr('d', path)
+					.attr('class', key);
+		}
+
 	}
 };
 
@@ -73,8 +100,8 @@ $(function() {
 			feature.properties['routeTag'] = vehicle.getAttribute('routeTag');
 			feature.properties['dirTag'] = vehicle.getAttribute('dirTag');
 			feature.geometry.coordinates = [];
-			feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lat')));
 			feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lon')));
+			feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lat')));
 			feature.geometry.coordinates.push(0.0);
 			feature.properties['secsSinceReport'] = parseInt(vehicle.getAttribute('secsSinceReport'));
 			feature.properties['predictable'] = vehicle.getAttribute('predictable');
@@ -83,13 +110,13 @@ $(function() {
 
 			features.push(feature);
 
-			// we try to render on the canvas now
-			renderGEOJson('buses')(null, {
-				type: "FeatureCollection",
-				features: features
-			});
-
 		}
+
+		// we try to render on the canvas now
+		renderGEOJson('buses')(null, {
+			type: "FeatureCollection",
+			features: features
+		});
 
 		console.log(features);
 	})
