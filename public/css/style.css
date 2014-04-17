@@ -5,3 +5,26 @@ body {
 a {
   color: #00B7FF;
 }
+
+path {
+	fill: grey;
+
+}
+
+.streets {
+	stroke: blue;
+
+}
+
+.arteries {
+	stroke: red;
+
+}
+
+.freeways {
+	stroke: lightblue;
+}
+
+.neighborhoods {
+	stroke: yellow;
+}
