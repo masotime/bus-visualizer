@@ -37,20 +37,23 @@ var renderGEOJson = function(className) {
 		// update the projection
 		projection.scale(s).translate(t);
 
+		// smaller pixel size for points
+		path.pointRadius(3);
+
 		// return the path
 		return path;
 	}
 
 
-	return function(err, streets) {
+	return function(err, featureCollection) {
 		// store the paths inside the cache
-		pathCache[className] = streets;
+		pathCache[className] = featureCollection;
 
 		// generate a path with global bounds
 		var path = generatePath();
 
 		// the path will automatically use the new projection
-		console.log('scaled bounds = ',JSON.stringify(path.bounds(streets), null, 4));
+		console.log('scaled bounds = ',JSON.stringify(path.bounds(featureCollection), null, 4));
 
 		// rerender all paths in the cache
 		for (key in pathCache) {
@@ -79,7 +82,7 @@ var params = {
   t: '1144953500233'
 };
 
-$(function() {
+function refreshBuses() {
 	$.get(url, params, function(data, textStatus, jqXHR) {
 		var vehicles = data.getElementsByTagName('vehicle');
 		console.log(vehicles);
@@ -119,8 +122,15 @@ $(function() {
 		});
 
 		console.log(features);
-	})
 
+		setTimeout(refreshBuses, 5000);
+	});
+
+
+}
+
+$(function() {
+	refreshBuses();
 });
 /*
 d3.xml(url)
