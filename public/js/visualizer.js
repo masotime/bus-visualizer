@@ -103,7 +103,7 @@ var RendererFactory = (function(selector, width, height) {
 						.attr('class', 'place-label-'+key+' place-background')
 						.attr('transform', function(d) { return "translate(" + finalProjection(d.geometry.coordinates) + ")"; })
 						.attr('width', '1em')
-						.attr('height', '1em')
+						.attr('height', '10px')
 						.attr('y', '-.35em')
 						.attr('x', '.2em');				
 
