@@ -18,6 +18,8 @@ var RendererFactory = (function(selector) {
 			var allfeatures = [];
 
 			for (key in pathCache) {
+				console.log('key',key);
+				console.log('pathCache[key]',pathCache[key]);
 				allfeatures = allfeatures.concat(pathCache[key].features);
 			}
 
