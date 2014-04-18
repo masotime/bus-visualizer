@@ -14,12 +14,12 @@ block content
       form(role='form')
         div.row
           div.col-xs-12.col-sm-12.col-md-6
-            select.form-control.bottom-gap(name='agency')
+            select.full-width.bottom-gap(name='agency')
               option(value='') Select an agency
           div.clearfix.visible-sm.visible-xs
           div.col-sx-12.col-sm-12.col-md-6
-            select.form-control(name='route')
-              option(value='') Select a route
+            select.full-width(name='route',multiple)
+              option(value='') Select routes
       div#visual-container
 
 block scripts

@@ -18,6 +18,10 @@ var RendererFactory = (function(selector, width, height) {
 		   .attr('height', targetWidth / aspectRatio);
 	};
 
+	var remove = function(key) {
+		svg.selectAll('path.'+key).remove();
+	};
+
 	// see https://github.com/mbostock/d3/wiki/Geo-Paths for API information
 	var renderGEOJson = function(className) {
 
@@ -130,7 +134,8 @@ var RendererFactory = (function(selector, width, height) {
 
 	return {
 		'render': renderGEOJson,
-		'resize': resize
+		'resize': resize,
+		'remove': remove
 	}
 });
 
@@ -169,8 +174,8 @@ var URL = 'http://webservices.nextbus.com/service/publicXMLFeed',
 var TimerFactory = (function(renderer) {
 	var threadStatus = {};
 
-	var threadMaker = function(id, agency, route, refresh) {
-		console.log('Creating thread',id,'| agency = ',agency,'| route = ',route,'| refresh=',refresh);
+	var threadMaker = function(id, agency, route, className, refresh) {
+		console.log('Creating thread',id,'| agency = ',agency,'| route = ',route,'| className =',className,'| refresh =',refresh);
 		refresh = refresh || 15000; // default
 
 		var thread = function() {
@@ -216,7 +221,7 @@ var TimerFactory = (function(renderer) {
 					// check the status. if it signals a stop, then don't try and render and reschedule
 					if (threadStatus[id]) {
 						// render on the canvas now
-						renderer.render('buses')(null, {
+						renderer.render(className)(null, {
 							type: "FeatureCollection",
 							features: features
 						});
@@ -226,6 +231,7 @@ var TimerFactory = (function(renderer) {
 						setTimeout(thread, refresh);					
 					} else {
 						console.log('Stopping thread',id);
+						renderer.remove(className);
 						delete threadStatus[id];
 					};
 				}).fail(function() {
@@ -241,24 +247,40 @@ var TimerFactory = (function(renderer) {
 		return thread;
 	};
 
-	var spawn = function(agency, route, refresh) {
-		var id = (new Date()).getTime(), threadId;
+	var spawn = function(agency, routes, refresh) {
+		var id = (new Date()).getTime();
 
 		// mark all other threads as off
-		for (threadId in threadStatus) {
-			threadStatus[threadId] = false;
-		};
+		resetAll();
 
-		// track the new thread
+		// make routes always an array
+		if (!Array.isArray(routes)) {
+			routes = [routes];
+		}
+
+		// track the new thread(s)
 		threadStatus[id] = true;
 
-		// create the thread and start it
-		var thread = threadMaker(id, agency, route, refresh);
-		thread();
-	}
+		// create the threads for each route and start them and start it
+		routes.forEach(function(route, idx) {
+			if (route !== null) {
+				var thread = threadMaker(id, agency, route, 'bus-'+(idx+1), refresh);
+				thread();
+			}
+		});
+	};
+
+	var resetAll = function() {
+		var threadId;
+
+		for (threadId in threadStatus) {
+			threadStatus[threadId] = false;
+		}
+	};
 
 	return {
-		'spawn': spawn
+		'spawn': spawn,
+		'resetAll': resetAll
 	};
 });
 
@@ -301,15 +323,18 @@ $(function() {
 	// It seems like there's only one or two agencies of note in SF....
 	$agencyDropdown.append('<option value="sf-muni">San Francisco Muni</option>');
 	$agencyDropdown.append('<option value="ucsf">University of California San Francisco</option>');
+	$agencyDropdown.select2();
 
-
+	// initially, the routeDropdown is hidden
+	$routeDropdown.hide();
 
 	// load routes for given agency
 	$agencyDropdown.on('change', function() {
 		var agency = $agencyDropdown.val();
 
 		// always clear the routes
-		$routeDropdown.empty().append('<option value="">Select a route</option>');
+		$routeDropdown.empty().hide();
+		timer.resetAll();
 
 		if (agency !== '') {
 			$.get(URL, PAYLOAD_DATA.routeList(agency), function(data, textStatus, jqXHR) {
@@ -325,6 +350,9 @@ $(function() {
 
 					$routeDropdown.append($option);
 				}
+
+				// show the dropdown and apply select2
+				$routeDropdown.show().select2({placeholder: 'Select routes'});
 
 			});
 		}
