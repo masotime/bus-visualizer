@@ -33,7 +33,7 @@ var RendererFactory = (function(selector) {
 		var generatePath = function(featureCollection) {
 			var globalBounds, x1, x2, y1, y2, s, t, projection, path;
 
-			// store the paths inside the cache
+			// store the paths inside the cache....
 			pathCache[className] = featureCollection;
 
 			globalBounds = calculateGlobalBounds();
