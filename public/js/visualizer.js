@@ -69,7 +69,7 @@ var RendererFactory = (function(selector) {
 
 		return function(err, featureCollection) {
 			if (err) console.error(err);
-			
+
 			// generate a path with global bounds
 			var path = generatePath(featureCollection);
 
@@ -120,7 +120,7 @@ var RendererFactory = (function(selector) {
 var renderer = RendererFactory('div#visual-container');
 
 // heavy references to https://github.com/mbostock/d3/wiki/Geo-Paths
-var maps = [ 'streets' ,'arteries', 'freeways', 'neighborhoods' ];
+var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
 
 d3.json('/sfmaps/' + maps[0] +'.json', renderer.render(maps[0]));
 
@@ -270,6 +270,7 @@ $(function() {
 		}
 		
 	});
+
 
 	// load routes for given agency
 	$agencyDropdown.on('change', function() {

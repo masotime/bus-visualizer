@@ -26,7 +26,7 @@ path {
 	fill: lightgreen;
 }
 
-.streets {
+.streets,.streets_min {
 	stroke: #333;
 
 }
