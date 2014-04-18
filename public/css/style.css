@@ -1,5 +1,21 @@
 body {
-  font: 18px "Avenir Next", "Segoe UI", "Roboto", sans-serif;
+  /*font: 18px "Avenir Next", "Segoe UI", "Roboto", sans-serif;*/
+}
+
+header.header {
+	background-color: #333;
+	color: #FFF;
+	margin-bottom: 2em;
+	box-shadow: 0 .1em .3em .25em #333;
+}
+
+.container-fluid {
+	padding-left: 5%;
+	padding-right: 5%;
+}
+
+.bottom-gap {
+	margin-bottom: 0.5em;
 }
 
 a {
@@ -7,12 +23,11 @@ a {
 }
 
 path {
-	fill: grey;
-
+	fill: lightgreen;
 }
 
 .streets {
-	stroke: blue;
+	stroke: #333;
 
 }
 
