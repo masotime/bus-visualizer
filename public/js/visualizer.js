@@ -2,7 +2,6 @@
 
 var containerSelector = 'div#visual-container';
 var RendererFactory = (function(selector, width, height) {
-	
 	var svg = d3.select(selector).append('svg'),
 		pathCache = {},
 		previousBounds,
@@ -19,6 +18,7 @@ var RendererFactory = (function(selector, width, height) {
 		   .attr('height', targetWidth / aspectRatio);
 	};
 
+	// see https://github.com/mbostock/d3/wiki/Geo-Paths for API information
 	var renderGEOJson = function(className) {
 
 		if (!className) {
@@ -134,19 +134,15 @@ var RendererFactory = (function(selector, width, height) {
 	}
 });
 
-var renderer = RendererFactory(containerSelector, document.documentElement.clientWidth*0.9, document.documentElement.clientWidth *0.9* 1.2);
-
-// heavy references to https://github.com/mbostock/d3/wiki/Geo-Paths
-var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
-
-d3.json('/sfmaps/' + maps[0] +'.json', renderer.render(maps[0]));
-
 var URL = 'http://webservices.nextbus.com/service/publicXMLFeed',
 	PAYLOAD_DATA = {
 		vehicleLocations: function(agency, route, time) {
 			agency = agency || 'sf-muni';
 			route = route || '30';
-			time = time || '0';
+
+			// use yesterday if not specified
+			// stolen from http://stackoverflow.com/a/5511591
+			time = time || ((function(d){ d.setDate(d.getDate()-1); return d})(new Date)).getTime();
 
 			return {
 				command: 'vehicleLocations',
@@ -170,7 +166,7 @@ var URL = 'http://webservices.nextbus.com/service/publicXMLFeed',
 	};
 
 // encapsulate "threads" spawned
-var Timer = (function() {
+var TimerFactory = (function(renderer) {
 	var threadStatus = {};
 
 	var threadMaker = function(id, agency, route, refresh) {
@@ -250,7 +246,7 @@ var Timer = (function() {
 
 		// mark all other threads as off
 		for (threadId in threadStatus) {
-			threadStatus[thread] = false;
+			threadStatus[threadId] = false;
 		};
 
 		// track the new thread
@@ -264,16 +260,22 @@ var Timer = (function() {
 	return {
 		'spawn': spawn
 	};
-}());
+});
 
+// this is where stuff actually starts happening
+var renderer = RendererFactory(containerSelector, document.documentElement.clientWidth*0.9, document.documentElement.clientWidth *0.9* 1.2);
+
+var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
+d3.json('/sfmaps/' + maps[0] +'.json', renderer.render(maps[0]));
 
 $(function() {
 	var $agencyDropdown = $('select[name="agency"]'),
-		$routeDropdown = $('select[name="route"]');
+		$routeDropdown = $('select[name="route"]'),
+		timer = TimerFactory(renderer);
 
 	// load agencies (one-time)
+	/*
 	$.get(URL, PAYLOAD_DATA.agencyList(), function(data, textStatus, jqXHR) {
-		//domdomdom
 		var agencies = data.getElementsByTagName('agency'),
 			i, agency, $option;
 
@@ -288,6 +290,13 @@ $(function() {
 		}
 		
 	});
+	*/
+
+	// It seems like there's only one or two agencies of note in SF....
+	$agencyDropdown.append('<option value="sf-muni">San Francisco Muni</option>');
+	$agencyDropdown.append('<option value="ucsf">University of California San Francisco</option>');
+
+
 
 	// load routes for given agency
 	$agencyDropdown.on('change', function() {
@@ -317,7 +326,7 @@ $(function() {
 	});
 
 	$routeDropdown.on('change', function() {
-		Timer.spawn($agencyDropdown.val(),$routeDropdown.val(),5000);
+		timer.spawn($agencyDropdown.val(),$routeDropdown.val(),5000);
 	});
 
 	// responsive resize, see 
