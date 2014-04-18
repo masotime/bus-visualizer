@@ -20,10 +20,12 @@ var RendererFactory = (function(selector, width, height) {
 
 	var remove = function(key) {
 		svg.selectAll('path.'+key).remove();
+		svg.selectAll('.place-label-'+key).remove();
 	};
 
 	// see https://github.com/mbostock/d3/wiki/Geo-Paths for API information
-	var renderGEOJson = function(className) {
+	var renderGEOJson = function(className, stroke, label) {
+		var finalProjection;
 
 		if (!className) {
 			throw new Error("Specify a valid classname to render these paths");
@@ -48,7 +50,7 @@ var RendererFactory = (function(selector, width, height) {
 		}
 
 		var generatePath = function(featureCollection) {
-			var globalBounds, x1, x2, y1, y2, s, t, projection, path;
+			var globalBounds, x1, x2, y1, y2, s, t, path;
 
 			// store the paths inside the cache....
 			pathCache[className] = featureCollection;
@@ -66,8 +68,8 @@ var RendererFactory = (function(selector, width, height) {
 			t = [(width - s * (x1+x2))/2, (height - s * (y1+y2))/2];
 
 			// create a new projection and path to use
-		 	projection = d3.geo.albers().scale(s).translate(t);
-			path = d3.geo.path().projection(projection);
+		 	finalProjection = d3.geo.albers().scale(s).translate(t);
+			path = d3.geo.path().projection(finalProjection);
 			path.pointRadius(3);
 
 			// return the path
@@ -75,14 +77,45 @@ var RendererFactory = (function(selector, width, height) {
 		}
 
 		var renderPath = function(key, path) {
+			var svgpath, labelPoints;
+
 			svg.selectAll('path.'+key).remove();
-			svg.selectAll('path.'+key)
+			
+			svgpath = svg.selectAll('path.'+key)
 				.data(pathCache[key].features)
 				.enter().append('path')
-					.attr('d', path)
-					.attr('class', key);
-		}
 
+			svgpath.attr('d', path).attr('class', key);
+
+			if (stroke) {
+				svgpath.attr('stroke', stroke)
+					.attr('stroke-width', '1');
+			}
+
+			if (label) {
+				// adapted from http://bost.ocks.org/mike/map/#displaying-places				
+				svg.selectAll('.place-label-'+key).remove();
+				labelPoints = svg.selectAll('.place-label-'+key)
+					.data(pathCache[key].features)
+					.enter();
+
+				labelPoints.append('rect')
+						.attr('class', 'place-label-'+key+' place-background')
+						.attr('transform', function(d) { return "translate(" + finalProjection(d.geometry.coordinates) + ")"; })
+						.attr('width', '1em')
+						.attr('height', '1em')
+						.attr('y', '-.35em')
+						.attr('x', '.2em');				
+
+				labelPoints.append('text')
+						.attr('class', 'place-label-'+key+' place-label')
+						.attr('transform', function(d) { return "translate(" + finalProjection(d.geometry.coordinates) + ")"; })
+						.attr('dy', '.35em')
+						.attr('dx', '.5em')
+						.text(function(d) { return label; });
+			}
+
+		}
 
 		return function(err, featureCollection) {
 			var path, currentBounds, refreshAll, key, 
@@ -221,7 +254,7 @@ var TimerFactory = (function(renderer) {
 					// check the status. if it signals a stop, then don't try and render and reschedule
 					if (threadStatus[id]) {
 						// render on the canvas now
-						renderer.render(className)(null, {
+						renderer.render(className, 'white', route)(null, {
 							type: "FeatureCollection",
 							features: features
 						});
