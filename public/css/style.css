@@ -34,7 +34,7 @@ body {
 .select2-search-choice:nth-child(9) { background-color: #999999 !important; background-image: none !important; color: white !important; }
 
 .place-label {
-	font-size: 10px;
+	font-size: 14px;
 }
 
 @media only screen 
