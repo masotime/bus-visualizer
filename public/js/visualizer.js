@@ -70,7 +70,8 @@ var RendererFactory = (function(selector, width, height) {
 			// create a new projection and path to use
 		 	finalProjection = d3.geo.albers().scale(s).translate(t);
 			path = d3.geo.path().projection(finalProjection);
-			path.pointRadius(3);
+
+			path.pointRadius(width <= 360 ? 1.5 : 3); // kind of responsive
 
 			// return the path
 			return path;
@@ -88,8 +89,8 @@ var RendererFactory = (function(selector, width, height) {
 			svgpath.attr('d', path).attr('class', key);
 
 			if (stroke) {
-				svgpath.attr('stroke', stroke)
-					.attr('stroke-width', '1');
+				svgpath.attr('stroke', stroke);
+				(width <= 360) ? svgpath.attr('stroke-width', '0.5') : svgpath.attr('stroke-width', '1');
 			}
 
 			if (label) {
