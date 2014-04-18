@@ -134,7 +134,7 @@ var RendererFactory = (function(selector, width, height) {
 	}
 });
 
-var renderer = RendererFactory(containerSelector, window.innerWidth*0.9, window.innerWidth *0.9* 1.2);
+var renderer = RendererFactory(containerSelector, document.documentElement.clientWidth*0.9, document.documentElement.clientWidth *0.9* 1.2);
 
 // heavy references to https://github.com/mbostock/d3/wiki/Geo-Paths
 var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
@@ -322,7 +322,7 @@ $(function() {
 
 	// responsive resize, see 
 	$(window).on('resize', function() {
-		renderer.resize(window.innerWidth * 0.9);
+		renderer.resize(document.documentElement.clientWidth * 0.9);
 	})
 
 });
