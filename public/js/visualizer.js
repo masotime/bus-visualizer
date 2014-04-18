@@ -102,7 +102,7 @@ var RendererFactory = (function(selector, width, height) {
 				labelPoints.append('rect')
 						.attr('class', 'place-label-'+key+' place-background')
 						.attr('transform', function(d) { return "translate(" + finalProjection(d.geometry.coordinates) + ")"; })
-						.attr('width', '1em')
+						.attr('width', (label.length * 0.5)+'em')
 						.attr('height', '10px')
 						.attr('y', '-.35em')
 						.attr('x', '.2em');				
