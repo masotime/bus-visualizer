@@ -116,10 +116,9 @@ var RendererFactory = (function(selector) {
 var renderer = RendererFactory('div#visual-container');
 
 // heavy references to https://github.com/mbostock/d3/wiki/Geo-Paths
-d3.json('/sfmaps/streets.json', renderer.render('streets'));
-//d3.json('/sfmaps/arteries.json', renderGEOJson('arteries'));
-//d3.json('/sfmaps/freeways.json', renderGEOJson('freeways'));
-//d3.json('/sfmaps/neighborhoods.json', renderGEOJson('neighborhoods'));
+var maps = [ 'streets' ,'arteries', 'freeways', 'neighborhoods' ];
+
+d3.json('/sfmaps/' + maps[0] +'.json', renderer.render(maps[0]));
 
 var URL = 'http://webservices.nextbus.com/service/publicXMLFeed',
 	PAYLOAD_DATA = {
@@ -160,59 +159,66 @@ var Timer = (function() {
 		var thread = function() {
 			
 			// do ajax, etc.
-			$.get(URL, PAYLOAD_DATA.vehicleLocations(agency, route, 0), function(data, textStatus, jqXHR) {
-				var vehicles = data.getElementsByTagName('vehicle');
-				var lastTime = data.getElementsByTagName('lastTime')[0].getAttribute('time');
-				// console.log(vehicles);
+			$.get(URL, PAYLOAD_DATA.vehicleLocations(agency, route, 0))
+				.done(function(data) {
+					var vehicles = data.getElementsByTagName('vehicle');
+					var lastTime = data.getElementsByTagName('lastTime')[0].getAttribute('time');
+					// console.log(vehicles);
 
-				// convert XML Doc to GeoJSON format
-				var features = [];
+					// convert XML Doc to GeoJSON format
+					var features = [];
 
-				for (var i=0; i < vehicles.length; i+=1) {
-					var vehicle = vehicles[i];
-					var feature = {
-						type: "Feature",
-						properties: {},
-						geometry: {
-							type: "Point"
-						}
+					for (var i=0; i < vehicles.length; i+=1) {
+						var vehicle = vehicles[i];
+						var feature = {
+							type: "Feature",
+							properties: {},
+							geometry: {
+								type: "Point"
+							}
+						};
+
+						// boring data transfer
+						feature.properties['id'] = vehicle.getAttribute('id');
+						feature.properties['routeTag'] = vehicle.getAttribute('routeTag');
+						feature.properties['dirTag'] = vehicle.getAttribute('dirTag');
+						feature.geometry.coordinates = [];
+						feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lon')));
+						feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lat')));
+						feature.geometry.coordinates.push(0.0);
+						feature.properties['secsSinceReport'] = parseInt(vehicle.getAttribute('secsSinceReport'));
+						feature.properties['predictable'] = vehicle.getAttribute('predictable');
+						feature.properties['heading'] = vehicle.getAttribute('heading');
+						feature.properties['speedKmHr'] = vehicle.getAttribute('speedKmHr');
+
+						features.push(feature);
+
+					}
+
+					// check the status. if it signals a stop, then don't try and render and reschedule
+					if (threadStatus[id]) {
+						// render on the canvas now
+						renderer.render('buses')(null, {
+							type: "FeatureCollection",
+							features: features
+						});
+
+						// console.log(features);
+						// reschedule
+						setTimeout(thread, refresh);					
+					} else {
+						console.log('Stopping thread',id);
+						delete threadStatus[id];
 					};
-
-					// boring data transfer
-					feature.properties['id'] = vehicle.getAttribute('id');
-					feature.properties['routeTag'] = vehicle.getAttribute('routeTag');
-					feature.properties['dirTag'] = vehicle.getAttribute('dirTag');
-					feature.geometry.coordinates = [];
-					feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lon')));
-					feature.geometry.coordinates.push(parseFloat(vehicle.getAttribute('lat')));
-					feature.geometry.coordinates.push(0.0);
-					feature.properties['secsSinceReport'] = parseInt(vehicle.getAttribute('secsSinceReport'));
-					feature.properties['predictable'] = vehicle.getAttribute('predictable');
-					feature.properties['heading'] = vehicle.getAttribute('heading');
-					feature.properties['speedKmHr'] = vehicle.getAttribute('speedKmHr');
-
-					features.push(feature);
-
-				}
-
-				// check the status. if it signals a stop, then don't try and render and reschedule
-				if (threadStatus[id]) {
-					// render on the canvas now
-					renderer.render('buses')(null, {
-						type: "FeatureCollection",
-						features: features
-					});
-
-					// console.log(features);
-					// reschedule
-					setTimeout(thread, refresh);					
-				} else {
-					console.log('Stopping thread',id);
-					delete threadStatus[id];
-				};
-				
-			}); // end $.get
-		} // end thread function
+				}).fail(function() {
+					// if we are still alive, we retry again
+					if (threadStatus[id]) {
+						console.log('Retrying thread',id,'again...');
+						setTimeout(thread, refresh);
+					};
+				}); // end $.get
+			
+		}; // end thread function
 
 		return thread;
 	};
