@@ -174,7 +174,7 @@ var TimerFactory = (function(renderer) {
 		refresh = refresh || 15000; // default
 
 		var thread = function() {
-			
+
 			// do ajax, etc.
 			$.get(URL, PAYLOAD_DATA.vehicleLocations(agency, route, 0))
 				.done(function(data) {
@@ -266,7 +266,13 @@ var TimerFactory = (function(renderer) {
 var renderer = RendererFactory(containerSelector, document.documentElement.clientWidth*0.9, document.documentElement.clientWidth *0.9* 1.2);
 
 var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
-d3.json('/sfmaps/' + maps[0] +'.json', renderer.render(maps[0]));
+d3.json('/sfmaps/' + maps[0] +'.json', function(err, result) {
+	$(function() {
+		$('#loading').hide();
+		$('#loaded').show();
+		renderer.render(maps[0])(err, result);
+	});
+});
 
 $(function() {
 	var $agencyDropdown = $('select[name="agency"]'),

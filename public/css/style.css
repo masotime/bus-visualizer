@@ -2,6 +2,10 @@ body {
   /*font: 18px "Avenir Next", "Segoe UI", "Roboto", sans-serif;*/
 }
 
+#loaded {
+	display: none;
+}
+
 header.header {
 	background-color: #333;
 	color: #FFF;
