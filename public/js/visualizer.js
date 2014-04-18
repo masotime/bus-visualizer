@@ -30,22 +30,27 @@ var RendererFactory = (function(selector) {
 
 		}
 
-		var generatePath = function() {
-			var globalBounds = calculateGlobalBounds();
+		var generatePath = function(featureCollection) {
+			var globalBounds, x1, x2, y1, y2, s, t, projection, path;
+
+			// store the paths inside the cache
+			pathCache[className] = featureCollection;
+
+			globalBounds = calculateGlobalBounds();
 
 			// lots of references to http://stackoverflow.com/a/14691788
 			// 1. scale must match the larger of (x2-x1)/width, (y2-y1)/height
-			var x1 = globalBounds[0][0];
-			var x2 = globalBounds[1][0];
-			var y1 = globalBounds[0][1];
-			var y2 = globalBounds[1][1];
+			x1 = globalBounds[0][0];
+			x2 = globalBounds[1][0];
+			y1 = globalBounds[0][1];
+			y2 = globalBounds[1][1];
 
-			var s = 1.1/Math.max((x2-x1)/width, (y2-y1)/height);
-			var t = [(width - s * (x1+x2))/2, (height - s * (y1+y2))/2];
+			s = 1.1/Math.max((x2-x1)/width, (y2-y1)/height);
+			t = [(width - s * (x1+x2))/2, (height - s * (y1+y2))/2];
 
 			// create a new projection and path to use
-		 	var projection = d3.geo.albers().scale(s).translate(t);
-			var path = d3.geo.path().projection(projection);
+		 	projection = d3.geo.albers().scale(s).translate(t);
+			path = d3.geo.path().projection(projection);
 			path.pointRadius(3);
 
 			// return the path
@@ -63,11 +68,10 @@ var RendererFactory = (function(selector) {
 
 
 		return function(err, featureCollection) {
-			// store the paths inside the cache
-			pathCache[className] = featureCollection;
-
+			if (err) console.error(err);
+			
 			// generate a path with global bounds
-			var path = generatePath();
+			var path = generatePath(featureCollection);
 
 			// calculate the current bounds
 			var currentBounds = calculateGlobalBounds();
