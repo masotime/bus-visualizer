@@ -1,10 +1,23 @@
-var width = 960, height = 1160;
+'use strict';
 
-var RendererFactory = (function(selector) {
-
-	var svg = d3.select('div#visual-container').append('svg').attr('width', width).attr('height', height),
+var containerSelector = 'div#visual-container';
+var RendererFactory = (function(selector, width, height) {
+	
+	var svg = d3.select(selector).append('svg'),
 		pathCache = {},
-		previousBounds;
+		previousBounds,
+		aspectRatio = width / height;
+
+	// see http://stackoverflow.com/a/9539361 for responsive stuff		
+	svg.attr('width', width)
+	   .attr('height', height)
+	   .attr('viewBox', '0 0 '+width+' '+height)
+	   .attr('preserveAspectRatio', 'xMidYMid');
+
+	var resize = function(targetWidth) {
+		svg.attr('width', targetWidth)
+		   .attr('height', targetWidth / aspectRatio);
+	};
 
 	var renderGEOJson = function(className) {
 
@@ -15,7 +28,7 @@ var RendererFactory = (function(selector) {
 		var calculateGlobalBounds = function() {
 			// based upon cached paths, calculate global bounds and determine a universal
 			// projection for all of them
-			var allfeatures = [];
+			var allfeatures = [], key;
 
 			for (key in pathCache) {
 				allfeatures = allfeatures.concat(pathCache[key].features);
@@ -68,19 +81,22 @@ var RendererFactory = (function(selector) {
 
 
 		return function(err, featureCollection) {
+			var path, currentBounds, refreshAll, key, 
+				lowerBoundsSame, upperBoundsSame;
+			
 			if (err) console.error(err);
 
 			// generate a path with global bounds
-			var path = generatePath(featureCollection);
+			path = generatePath(featureCollection);
 
 			// calculate the current bounds
-			var currentBounds = calculateGlobalBounds();
-			var refreshAll = false;
+			currentBounds = calculateGlobalBounds();
+			refreshAll = false;
 
 			// compare against the previous bounds
 			if (previousBounds) {
-				var lowerBoundsSame = previousBounds[0][0] === currentBounds[0][0] && previousBounds[0][1] === currentBounds[0][1];
-				var upperBoundsSame = previousBounds[1][0] === currentBounds[1][0] && previousBounds[1][1] === currentBounds[1][1];
+				lowerBoundsSame = previousBounds[0][0] === currentBounds[0][0] && previousBounds[0][1] === currentBounds[0][1];
+				upperBoundsSame = previousBounds[1][0] === currentBounds[1][0] && previousBounds[1][1] === currentBounds[1][1];
 				if (lowerBoundsSame && upperBoundsSame) {
 					console.log('Full refresh NOT needed');
 				} else {
@@ -113,11 +129,12 @@ var RendererFactory = (function(selector) {
 	};
 
 	return {
-		'render': renderGEOJson
+		'render': renderGEOJson,
+		'resize': resize
 	}
 });
 
-var renderer = RendererFactory('div#visual-container');
+var renderer = RendererFactory(containerSelector, 960, 1160);
 
 // heavy references to https://github.com/mbostock/d3/wiki/Geo-Paths
 var maps = [ 'streets_min' ,'arteries', 'freeways', 'neighborhoods' ];
@@ -165,16 +182,17 @@ var Timer = (function() {
 			// do ajax, etc.
 			$.get(URL, PAYLOAD_DATA.vehicleLocations(agency, route, 0))
 				.done(function(data) {
-					var vehicles = data.getElementsByTagName('vehicle');
-					var lastTime = data.getElementsByTagName('lastTime')[0].getAttribute('time');
+					var vehicles, vehicle, lastTime, features, feature, i;
+					vehicles = data.getElementsByTagName('vehicle');
+					lastTime = data.getElementsByTagName('lastTime')[0].getAttribute('time');
 					// console.log(vehicles);
 
 					// convert XML Doc to GeoJSON format
-					var features = [];
+					features = [];
 
-					for (var i=0; i < vehicles.length; i+=1) {
-						var vehicle = vehicles[i];
-						var feature = {
+					for (i=0; i < vehicles.length; i+=1) {
+						vehicle = vehicles[i];
+						feature = {
 							type: "Feature",
 							properties: {},
 							geometry: {
@@ -228,10 +246,10 @@ var Timer = (function() {
 	};
 
 	var spawn = function(agency, route, refresh) {
-		var id = (new Date()).getTime();
+		var id = (new Date()).getTime(), threadId;
 
 		// mark all other threads as off
-		for (thread in threadStatus) {
+		for (threadId in threadStatus) {
 			threadStatus[thread] = false;
 		};
 
@@ -271,7 +289,6 @@ $(function() {
 		
 	});
 
-
 	// load routes for given agency
 	$agencyDropdown.on('change', function() {
 		var agency = $agencyDropdown.val();
@@ -302,5 +319,12 @@ $(function() {
 	$routeDropdown.on('change', function() {
 		Timer.spawn($agencyDropdown.val(),$routeDropdown.val(),5000);
 	});
+
+	// responsive resize, see 
+	$(window).on('resize', function() {
+		renderer.resize(window.innerWidth);
+	})
+
+	renderer.resize(window.innerWidth);
 
 });
